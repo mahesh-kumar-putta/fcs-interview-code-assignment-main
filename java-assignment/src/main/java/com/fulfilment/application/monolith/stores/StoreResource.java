@@ -6,6 +6,7 @@ import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -28,6 +29,7 @@ import org.jboss.logging.Logger;
 public class StoreResource {
 
   @Inject LegacyStoreManagerGateway legacyStoreManagerGateway;
+  @Inject TransactionSynchronizationRegistry transactionSynchronizationRegistry;
 
   private static final Logger LOGGER = Logger.getLogger(StoreResource.class.getName());
 
@@ -55,7 +57,7 @@ public class StoreResource {
 
     store.persist();
 
-    legacyStoreManagerGateway.createStoreOnLegacySystem(store);
+    synchronizeAfterCommit(() -> legacyStoreManagerGateway.createStoreOnLegacySystem(store));
 
     return Response.ok(store).status(201).build();
   }
@@ -77,7 +79,7 @@ public class StoreResource {
     entity.name = updatedStore.name;
     entity.quantityProductsInStock = updatedStore.quantityProductsInStock;
 
-    legacyStoreManagerGateway.updateStoreOnLegacySystem(updatedStore);
+    synchronizeAfterCommit(() -> legacyStoreManagerGateway.updateStoreOnLegacySystem(entity));
 
     return entity;
   }
@@ -104,9 +106,24 @@ public class StoreResource {
       entity.quantityProductsInStock = updatedStore.quantityProductsInStock;
     }
 
-    legacyStoreManagerGateway.updateStoreOnLegacySystem(updatedStore);
+    synchronizeAfterCommit(() -> legacyStoreManagerGateway.updateStoreOnLegacySystem(entity));
 
     return entity;
+  }
+
+  private void synchronizeAfterCommit(Runnable operation) {
+    transactionSynchronizationRegistry.registerInterposedSynchronization(
+        new jakarta.transaction.Synchronization() {
+          @Override
+          public void beforeCompletion() {}
+
+          @Override
+          public void afterCompletion(int status) {
+            if (status == jakarta.transaction.Status.STATUS_COMMITTED) {
+              operation.run();
+            }
+          }
+        });
   }
 
   @DELETE
