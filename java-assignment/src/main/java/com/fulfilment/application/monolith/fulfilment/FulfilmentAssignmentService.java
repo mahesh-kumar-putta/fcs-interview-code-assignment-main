@@ -1,9 +1,9 @@
 package com.fulfilment.application.monolith.fulfilment;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 public class FulfilmentAssignmentService {
 
@@ -28,7 +28,8 @@ public class FulfilmentAssignmentService {
         .count();
 
     if (count >= 2) {
-      throw new IllegalArgumentException("Each product can be fulfilled by a maximum of 2 warehouses per store");
+      throw new IllegalArgumentException(
+          "Each product can be fulfilled by a maximum of 2 warehouses per store");
     }
   }
 
@@ -38,17 +39,20 @@ public class FulfilmentAssignmentService {
         .count();
 
     if (count >= 3) {
-      throw new IllegalArgumentException("Each store can be fulfilled by a maximum of 3 warehouses");
+      throw new IllegalArgumentException(
+          "Each store can be fulfilled by a maximum of 3 warehouses");
     }
   }
 
   private void validateProductLimitPerWarehouse(FulfilmentAssignment assignment) {
-    long count = assignments.stream()
+    Set<Long> distinctProducts = assignments.stream()
         .filter(existing -> existing.warehouseId.equals(assignment.warehouseId))
-        .count();
+        .map(existing -> existing.productId)
+        .collect(java.util.stream.Collectors.toSet());
 
-    if (count >= 5) {
-      throw new IllegalArgumentException("Each warehouse can store maximally 5 types of products");
+    if (distinctProducts.size() >= 5) {
+      throw new IllegalArgumentException(
+          "Each warehouse can store maximally 5 types of products");
     }
   }
 }
