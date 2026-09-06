@@ -51,6 +51,7 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
 
   private DbWarehouse toDbWarehouse(Warehouse warehouse) {
     var entity = new DbWarehouse();
+    entity.id = warehouse.id;
     entity.businessUnitCode = warehouse.businessUnitCode;
     entity.location = warehouse.location;
     entity.capacity = warehouse.capacity;

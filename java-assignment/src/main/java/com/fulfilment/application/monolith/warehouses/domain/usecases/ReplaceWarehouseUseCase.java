@@ -4,6 +4,7 @@ import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ReplaceWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
@@ -16,8 +17,26 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
 
   @Override
   public void replace(Warehouse newWarehouse) {
-    // TODO implement this method
+    if (newWarehouse == null || newWarehouse.businessUnitCode == null) {
+      throw new IllegalArgumentException("Replacement warehouse is invalid");
+    }
 
-    warehouseStore.update(newWarehouse);
+    Warehouse currentWarehouse =
+        warehouseStore.findByBusinessUnitCode(newWarehouse.businessUnitCode);
+    if (currentWarehouse == null) {
+      throw new IllegalArgumentException("Warehouse does not exist");
+    }
+    if (newWarehouse.capacity == null || newWarehouse.capacity < currentWarehouse.stock) {
+      throw new IllegalArgumentException("Replacement capacity cannot accommodate current stock");
+    }
+    if (newWarehouse.stock == null || !newWarehouse.stock.equals(currentWarehouse.stock)) {
+      throw new IllegalArgumentException("Replacement stock must match current stock");
+    }
+
+    currentWarehouse.archivedAt = LocalDateTime.now();
+    warehouseStore.update(currentWarehouse);
+    newWarehouse.createdAt = LocalDateTime.now();
+    newWarehouse.archivedAt = null;
+    warehouseStore.create(newWarehouse);
   }
 }
