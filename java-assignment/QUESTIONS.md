@@ -44,3 +44,15 @@ To keep coverage effective over time, I would treat tests as a safety net around
 
 This gives high confidence without over-investing in expensive, brittle tests that do not guard the actual business risk.
 ```
+
+----
+4. How would you implement the bonus fulfilment assignment feature and protect its business rules?
+
+**Answer:**
+```txt
+I would model a fulfilment assignment as a relationship between a Store, a Warehouse, and a Product, then validate the relationship before persisting it. The service should reject an assignment when the same Product would use more than two different Warehouses for one Store, when a Store would use more than three different Warehouses, or when a Warehouse would hold more than five different Product types.
+
+The limits must count distinct relationships, not duplicate requests. For example, assigning the same product to the same warehouse twice should not consume another product or warehouse slot, while assigning a new warehouse for that product and store should count. These rules should be enforced in the domain service and backed by database constraints or transactional locking when multiple requests can be processed concurrently.
+
+The main use cases are assigning a product to a warehouse for a store, rejecting assignments that exceed a limit, and allowing valid assignments at the boundary values. I would add unit tests for each limit, duplicate assignments, boundary conditions, and combinations where one assignment affects more than one rule. At the API boundary I would return a clear client error for a rejected business rule and keep the operation atomic so a failed assignment cannot leave partial state behind.
+```
